@@ -1,0 +1,146 @@
+Sub StockData()
+    Application.ScreenUpdating = False
+
+    Dim headers() As Variant
+    Dim rowTitles() As Variant
+    Dim ws As Worksheet
+    Dim wb As Workbook
+    Set wb = ActiveWorkbook
+    Dim currentTickerSymbol As String
+    Dim prevTickerSymbol As String
+    Dim rowCt As Integer
+    Dim tickerCt As Integer
+    Dim rowSum As Double
+    Dim rowVolume As Double 'Long 'Integer 'VBA SUCKS
+    Dim rowTotalVolume As Double 'Long 'Integer
+    Dim openingTicker As Double
+    Dim closingTicker As Double
+    Dim openVal As Double
+    Dim closeVal As Double
+    Dim table As Range
+    
+    Dim currentPercentage As Double
+    Dim previousPercentage As Double
+    Dim greatestTickerIncrease As Double
+    Dim greatestTickerDecrease As Double
+    Dim greatestTickerVolume As Double
+    Dim greatestTickerIncreaseSymbol As String
+    
+    Dim currentSymbol As String
+    Dim greatestPercentageSymbol As String
+    Dim greatestPercentage As Double
+    greatestPercentage = -2 ^ 31 'VBA SUCKS
+    Dim leastPercentageSymbol As String
+    Dim leastPercentage As Double
+    leastPercentage = 2 ^ 31
+    Dim greatestVolumeSymbol As String
+    Dim greatestVolume As Double
+    greatestVolume = -2 ^ 31
+    
+    'Set header info
+    headers() = Array("Ticker", "Yearly Change", "Percent Change", "Total Stock Volume", "", "", _
+    "Ticker", "Value")
+    rowTitles() = Array("", "Greatest % increase", "Greatest % decrease", "Greatest total volume")
+    tickerCt = 2
+    
+    'Iterate thru each worksheet
+    For Each ws In wb.Sheets
+        Set table = ws.Range("A2", ws.Range("A2").End(xlToRight).End(xlDown))
+       Debug.Print ws.Name
+       Debug.Print table.Rows.Count
+       
+       'Set header info
+        For i = LBound(headers()) To UBound(headers())
+            ws.Cells(1, 9 + i).Value = headers(i)
+        Next i
+        For i = LBound(rowTitles()) To UBound(rowTitles())
+            ws.Cells(i + 1, 14).Value = rowTitles(i)
+        Next i
+       
+        'Set initial Ticker values
+        prevTickerSymbol = ws.Rows.Cells(2, 1).Value
+        openingTicker = ws.Rows.Cells(2, 3).Value
+    
+        Debug.Print "prevTickerSymbol: "
+        Debug.Print prevTickerSymbol
+         
+        For i = 2 To table.Rows.Count + 1
+        'For i = 2 To 3000 'debug
+    
+            currentTickerSymbol = ws.Rows.Cells(i, 1).Value
+            
+            openVal = ws.Rows.Cells(i, 3).Value
+            closeVal = ws.Rows.Cells(i, 6).Value
+            rowVolume = ws.Rows.Cells(i, 7).Value
+
+            'Calculate ticker values
+            If (currentTickerSymbol <> prevTickerSymbol) Or (i = table.Rows.Count + 1) Then
+            
+                'Potential greatest values
+                currentPercentage = ws.Rows.Cells(tickerCt, 11).Value
+                currentVolume = ws.Rows.Cells(tickerCt, 12).Value
+                currentSymbol = ws.Rows.Cells(tickerCt, 9).Value
+            
+                ws.Rows.Cells(tickerCt, 9) = prevTickerSymbol
+                ws.Rows.Cells(tickerCt, 10) = (closingTicker - openingTicker)
+                ws.Rows.Cells(tickerCt, 10).NumberFormat = "0.00" 'VBA SUCKS
+                If Sgn(ws.Rows.Cells(tickerCt, 10)) = -1 Then
+                    ws.Rows.Cells(tickerCt, 10).Interior.Color = RGB(255, 0, 0)
+                Else
+                    ws.Rows.Cells(tickerCt, 10).Interior.Color = RGB(0, 255, 0)
+                End If
+                ws.Rows.Cells(tickerCt, 11) = Format((closingTicker / openingTicker) - 1, "0.00%")
+                ws.Rows.Cells(tickerCt, 12) = rowTotalVolume
+
+                'Greatest values
+                If (currentPercentage > greatestPercentage) Then
+                    greatestPercentage = currentPercentage
+                    greatestPercentageSymbol = currentSymbol
+                End If
+        
+                If (currentPercentage < leastPercentage) Then
+                    leastPercentage = currentPercentage
+                    leastPercentageSymbol = currentSymbol
+                End If
+                
+                If (currentVolume > greatestVolume) Then
+                    greatestVolume = currentVolume
+                    greatestVolumeSymbol = currentSymbol
+                End If
+                
+                openingTicker = ws.Rows.Cells(i, 3).Value
+                closingTicker = ws.Rows.Cells(i, 6).Value
+                tickerCt = tickerCt + 1
+                rowTotalVolume = 0
+
+            End If
+            
+            closingTicker = ws.Rows.Cells(i, 6).Value
+            rowTotalVolume = rowTotalVolume + rowVolume
+            prevTickerSymbol = currentTickerSymbol
+
+        Next i
+        
+        'Assign greatest values
+        ws.Rows.Cells(2, 15) = greatestPercentageSymbol
+        ws.Rows.Cells(2, 16) = Format(greatestPercentage, "0.00%")
+        ws.Rows.Cells(3, 15) = leastPercentageSymbol
+        ws.Rows.Cells(3, 16) = Format(leastPercentage, "0.00%")
+        ws.Rows.Cells(4, 15) = greatestVolumeSymbol
+        ws.Rows.Cells(4, 16) = greatestVolume
+        
+        'reset for next ws
+        tickerCt = 2
+        greatestTickerIncrease = 0
+        greatestTickerIncreaseSymbol = ""
+        
+   Next
+
+Application.ScreenUpdating = True
+    
+End Sub
+
+
+
+
+
